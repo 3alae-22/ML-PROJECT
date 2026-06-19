@@ -1,0 +1,12 @@
+services:
+    db:
+        container_name: postgres_container
+        image: postgres:14.17
+        ports:
+            - 5000:5432
+        environment:
+            POSTGRES_DB: db
+            POSTGRES_USER: db_user
+            POSTGRES_PASSWORD: db_password
+        volumes:
+            - /workspaces/ML-PROJECT/data/raw:/var/lib/postgresql/data
