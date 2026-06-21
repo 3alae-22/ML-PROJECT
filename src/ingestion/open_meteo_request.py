@@ -2,9 +2,12 @@ import requests
 import numpy as np
 import time
 
-lats = [round(x, 2) for x in np.arange(30.0, 33.25, 0.25)]
-lons = [round(x, 2) for x in np.arange(-10.0, -9.25, 0.25)]
+
+lats = [round(x, 2) for x in np.arange(29.25, 36.25, 0.25)]
+lons = [round(x, 2) for x in np.arange(-15.0, -9.25, 0.25)]
 GRID_POINTS = [(lat, lon) for lat in lats for lon in lons]
+
+
 
 
 def fetch_marine(lat, lon, date_start, date_end, retries=3):

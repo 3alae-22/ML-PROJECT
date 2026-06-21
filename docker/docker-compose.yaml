@@ -9,4 +9,4 @@ services:
             POSTGRES_USER: db_user
             POSTGRES_PASSWORD: db_password
         volumes:
-            - /workspaces/ML-PROJECT/data/raw:/var/lib/postgresql/data
+            - ./postgres/data:/var/lib/postgresql/data

@@ -1,12 +1,15 @@
 from open_meteo_request import fetch_marine, fetch_wind, is_ocean_point, GRID_POINTS
 import psycopg2
+import numpy as np
 import time
 
 YEARS = [
-    ("2021-10-01", "2021-12-31"),
+    # ("2021-10-01", "2021-12-31"),
     ("2022-01-01", "2022-12-31"),
+    ("2023-01-01", "2023-12-31"),
+    ("2024-01-01", "2024-12-31"),
+    ("2025-01-01", "2025-12-31"),
 ]
-
 
 def connect_to_db():
     print("Connecting to PostgreSQL database...")
@@ -22,7 +25,6 @@ def connect_to_db():
     except psycopg2.Error as e:
         print(f"Database connection failed: {e}")
         raise
-
 
 def create_table(conn):
     print("Creating table if not exists...")
@@ -48,6 +50,15 @@ def create_table(conn):
         print(f"Failed to create table: {e}")
         raise
 
+def already_ingested(conn, lat, lon, date_start, date_end):
+    """Vérifie si ce point/période est déjà en DB"""
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT COUNT(*) FROM dev.raw_marine_weather
+            WHERE lat = %s AND lon = %s
+            AND date BETWEEN %s AND %s
+        """, (lat, lon, date_start, date_end))
+        return cursor.fetchone()[0] > 0
 
 def insert_records(conn, lat, lon, data_marine, data_wind):
     try:
@@ -57,7 +68,7 @@ def insert_records(conn, lat, lon, data_marine, data_wind):
             rows = [
                 (
                     marine["time"][i],
-                    float(lat),             
+                    float(lat),
                     float(lon),
                     marine["wave_height_max"][i],
                     marine["wave_period_max"][i],
@@ -81,11 +92,14 @@ def insert_records(conn, lat, lon, data_marine, data_wind):
         print(f"Error inserting data: {e}")
         raise
 
-
 if __name__ == "__main__":
     valid   = 0
     skipped = 0
     failed  = 0
+
+    lats = [round(x, 2) for x in np.arange(30.25, 36.25, 0.25)]
+    lons = [round(x, 2) for x in np.arange(-15.0, -9.25, 0.25)]
+    GRID_POINTS = [(lat, lon) for lat in lats for lon in lons]
 
     conn = connect_to_db()
     create_table(conn)
@@ -102,6 +116,10 @@ if __name__ == "__main__":
             point_failed = False
 
             for date_start, date_end in YEARS:
+                if already_ingested(conn, lat, lon, date_start, date_end):
+                    print(f"SKIP lat={lat} lon={lon} {date_start[:4]} already ingested")
+                    continue
+
                 data_marine = fetch_marine(lat, lon, date_start, date_end)
                 time.sleep(0.5)
                 data_wind   = fetch_wind(lat, lon, date_start, date_end)
