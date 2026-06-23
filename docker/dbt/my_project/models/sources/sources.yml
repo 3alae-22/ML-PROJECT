@@ -1,0 +1,37 @@
+version: 2
+
+sources:
+    - name: dev
+      database: db
+      tables:
+        - name: raw_marine_weather
+          columns:
+            - name: date
+            - name: lat
+            - name: lon
+            - name: wave_height_max
+            - name: wave_period_max
+            - name: swell_height_max
+            - name: wind_speed_max
+            - name: wind_dir
+        - name: raw_copernicus
+          columns:
+            - name: date
+            - name: lat
+            - name: lon
+            - name: lat_grid
+            - name: lon_grid
+            - name: sst
+            - name: salinity
+            - name: current_u
+            - name: current_v
+        - name: raw_fishing
+          columns:
+            - name: date
+            - name: lat
+            - name: lon
+            - name: lat_grid
+            - name: lon_grid
+            - name: hours
+            - name: geartype
+            - name: vessel_ids 

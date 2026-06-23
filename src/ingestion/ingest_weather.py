@@ -4,7 +4,7 @@ import numpy as np
 import time
 
 YEARS = [
-    # ("2021-10-01", "2021-12-31"),
+    ("2021-10-01", "2021-12-31"),
     ("2022-01-01", "2022-12-31"),
     ("2023-01-01", "2023-12-31"),
     ("2024-01-01", "2024-12-31"),
@@ -51,7 +51,6 @@ def create_table(conn):
         raise
 
 def already_ingested(conn, lat, lon, date_start, date_end):
-    """Vérifie si ce point/période est déjà en DB"""
     with conn.cursor() as cursor:
         cursor.execute("""
             SELECT COUNT(*) FROM dev.raw_marine_weather
@@ -97,8 +96,8 @@ if __name__ == "__main__":
     skipped = 0
     failed  = 0
 
-    lats = [round(x, 2) for x in np.arange(30.25, 36.25, 0.25)]
-    lons = [round(x, 2) for x in np.arange(-15.0, -9.25, 0.25)]
+    lats = [round(float(x), 2) for x in np.arange(29.25, 36.25, 0.25)]
+    lons = [round(float(x), 2) for x in np.arange(-15.0, -9.25, 0.25)]
     GRID_POINTS = [(lat, lon) for lat in lats for lon in lons]
 
     conn = connect_to_db()
