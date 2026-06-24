@@ -1,17 +1,17 @@
 {{ config(materialized='table') }}
 
-SELECT
+select
     date,
     lat_grid,
     lon_grid,
 
     fishing_hours,
-    (fishing_hours > 0)::int AS is_fishing,
+    (fishing_hours > 0)::int as is_fishing,
     geartype,
 
-    EXTRACT(MONTH FROM date) AS month,
-    EXTRACT(DOW FROM date) AS day_of_week,
-    EXTRACT(QUARTER FROM date) AS quarter,
+    extract(month from date) as month,
+    extract(dow from date) as day_of_week,
+    extract(quarter from date) as quarter,
 
     sst,
     salinity,
@@ -24,5 +24,5 @@ SELECT
     wind_speed_max,
     wind_dir
 
-FROM {{ ref('int_features') }}
-ORDER BY lat_grid, lon_grid, date
+from {{ ref('int_features') }}
+order by date, lat_grid, lon_grid
