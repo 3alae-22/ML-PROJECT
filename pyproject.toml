@@ -16,4 +16,5 @@ dependencies = [
     "requests>=2.34.2",
     "seaborn>=0.13.2",
     "sqlalchemy>=2.0.51",
+    "statsmodels>=0.14.6",
 ]
