@@ -148,10 +148,12 @@ activemq-data/
 *.sage.py
 
 # Environments
-src\ingestion\.env
+src/ingestion/.env
 .env
+.env.*
+!.env.example
 .envrc
-.venv
+.venv/
 env/
 venv/
 ENV/
@@ -218,20 +220,42 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-
-# Python
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-.python-version
-
-# Env
-.env
-
 # Docker data
 docker/postgres/data/
 docker/postgres/backup.sql
 
-# IDE
-.vscode/
+# --- MLflow ---
+mlruns/
+mlartifacts/
+mlflow.db
+notebooks/mlflow/
+
+# --- Airflow ---
+dags/__pycache__/
+docker/airflow/logs/
+docker/airflow/plugins/__pycache__/
+airflow.db
+airflow.cfg
+airflow-webserver.pid
+standalone_admin_password.txt
+
+# --- dbt ---
+docker/dbt/target/
+docker/dbt/dbt_packages/
+docker/dbt/logs/
+.dbt/
+
+# --- Data (à adapter selon ta politique) ---
+data/raw/
+data/processed/
+*.csv
+*.parquet
+!data/**/sample*.csv
+
+# --- Plots / outputs générés ---
+notebooks/plots/*
+!notebooks/plots/.gitkeep
+
+# --- Model artifacts ---
+*.pkl
+*.joblib

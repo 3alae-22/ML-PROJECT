@@ -1,3 +1,28 @@
+x-airflow-common: &airflow-common
+    build:
+        context: .
+        dockerfile: Dockerfile
+    environment: &airflow-common-env
+        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://db_user:db_password@db:5432/db
+        AIRFLOW__CORE__EXECUTOR: LocalExecutor
+        AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+        AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+        AIRFLOW__API_AUTH__JWT_SECRET: "fishing-project-secret-change-in-prod"
+        AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+        MLFLOW_TRACKING_URI: http://mlflow_container:5001
+        MLFLOW_ARTIFACT_URI: mlflow-artifacts://mlflow_container:5001
+        PYTHONPATH: /opt/airflow/dags
+    volumes:
+        - ../dags:/opt/airflow/dags
+        - ../src:/opt/airflow/dags/src
+        - ./airflow/logs:/opt/airflow/logs
+    networks:
+        - my-network
+    depends_on:
+        db:
+            condition: service_healthy
+
 services:
     db:
         container_name: postgres_container
@@ -12,7 +37,35 @@ services:
             - ./postgres/data:/var/lib/postgresql/data
         networks:
             - my-network
-    
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U db_user -d db"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    mlflow:
+        container_name: mlflow_container
+        image: ghcr.io/mlflow/mlflow:v3.10.0
+        ports:
+            - 5001:5001
+        volumes:
+            - ./mlflow/artifacts:/artifacts
+        environment:
+            MLFLOW_BACKEND_STORE_URI: postgresql://db_user:db_password@db:5432/mlflow_db
+            MLFLOW_DEFAULT_ARTIFACT_ROOT: /artifacts
+        depends_on:
+            db:
+                condition: service_healthy
+        networks:
+            - my-network
+        command: ["bash", "-c", "chmod 777 /artifacts && pip install psycopg2-binary --quiet && mlflow server --host 0.0.0.0 --port 5001 --backend-store-uri postgresql://db_user:db_password@db:5432/mlflow_db --default-artifact-root mlflow-artifacts:/ --artifacts-destination /artifacts --serve-artifacts --allowed-hosts '*'"]
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
+            interval: 15s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+
     dbt:
         container_name: dbt_container
         image: ghcr.io/dbt-labs/dbt-postgres:1.9.latest
@@ -23,11 +76,89 @@ services:
         environment:
             DBT_PROFILES_DIR: "/root/.dbt"
         depends_on:
-            - db
+            db:
+                condition: service_healthy
         networks:
             - my-network
         command: run
 
+    airflow-init:
+        <<: *airflow-common
+        container_name: airflow_init
+        networks:
+            - my-network
+        depends_on:
+            db:
+                condition: service_healthy
+            mlflow:
+                condition: service_healthy
+        entrypoint: ["/bin/bash", "-c", "airflow db migrate && airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com || true"]
+
+    airflow-apiserver:
+        <<: *airflow-common
+        container_name: airflow_apiserver
+        ports:
+            - 8080:8080
+        depends_on:
+            db:
+                condition: service_healthy
+            mlflow:
+                condition: service_healthy
+            airflow-init:
+                condition: service_completed_successfully
+        networks:
+            - my-network
+        command: api-server
+        healthcheck:
+            test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 60s
+
+    airflow-scheduler:
+        <<: *airflow-common
+        container_name: airflow_scheduler
+        depends_on:
+            db:
+                condition: service_healthy
+            mlflow:
+                condition: service_healthy
+            airflow-init:
+                condition: service_completed_successfully
+        networks:
+            - my-network
+        command: scheduler
+
+    airflow-dag-processor:
+        <<: *airflow-common
+        container_name: airflow_dag_processor
+        depends_on:
+            db:
+                condition: service_healthy
+            mlflow:
+                condition: service_healthy
+            airflow-init:
+                condition: service_completed_successfully
+        networks:
+            - my-network
+        command: dag-processor
+
+    airflow-triggerer:
+        <<: *airflow-common
+        container_name: airflow_triggerer
+        depends_on:
+            db:
+                condition: service_healthy
+            mlflow:
+                condition: service_healthy
+            airflow-init:
+                condition: service_completed_successfully
+        networks:
+            - my-network
+        command: triggerer
+
 networks:
     my-network:
+        name: my-network
         driver: bridge

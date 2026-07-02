@@ -1,0 +1,19 @@
+artifact_path: mlflow-artifacts:/3/models/m-6b718b79dfbf4324a8cdd06bb4911eb1/artifacts
+flavors:
+  python_function:
+    cloudpickle_version: 3.1.1
+    code: null
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.13.13
+    streamable: false
+mlflow_version: 3.10.0
+model_id: m-6b718b79dfbf4324a8cdd06bb4911eb1
+model_size_bytes: 143992037
+model_uuid: m-6b718b79dfbf4324a8cdd06bb4911eb1
+prompts: null
+run_id: 333923f6771f49839c9aa090ac76e5af
+utc_time_created: '2026-06-28 15:15:50.855952'
